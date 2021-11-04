@@ -34,18 +34,6 @@ TIMESINCE_CHUNKS = (
     (60, 'minute'),
 )
 
-
-# this func is called in these lines: 125, 132 and 141
-# if you need it, then uncomment these lines, and comment the lines that follow them.
-
-def avoid_wrapping(value):
-    """
-    Avoid text wrapping in the middle of a phrase by adding non-breaking
-    spaces where there previously were normal spaces.
-    """
-    return value.replace(" ", "\xa0")
-
-
 def is_aware(value):
     return value.utcoffset() is not None
 
@@ -87,14 +75,14 @@ def arplural(digit):
     if digit >= 100 and (lasttowdigits(digit) == 0 or lasttowdigits(digit) == 1 or lasttowdigits(digit) == 2):
         return 4
         
-# changes that I made are the name of function and the following lines: 126, 133, 142, 146.
-def ar_timesince(d, now=None, reversed=False, time_strings=None, depth=2):
+
+def ar_timesince(d, now=None, reversed=False, depth=2):
     """
     Adapted from
     https://web.archive.org/web/20060617175230/http://blog.natbat.co.uk/archive/2003/Jun/14/time_since
     """
-    if time_strings is None:
-        time_strings = ar_time_strings # TIME_STRINGS
+    time_strings = TIME_STRINGS
+
     if depth <= 0:
         raise ValueError('depth must be greater than 0.')
     # Convert datetime.date to datetime.datetime for comparison.
@@ -122,32 +110,23 @@ def ar_timesince(d, now=None, reversed=False, time_strings=None, depth=2):
     since = delta.days * 24 * 60 * 60 + delta.seconds
     if since <= 0:
         # d is in the future compared to now, stop processing.
-        # return avoid_wrapping('لا شيء بعد')
         return 'لا شيء بعد'
     for i, (seconds, name) in enumerate(TIMESINCE_CHUNKS):
         count = since // seconds
         if count != 0:
             break
-    else:
-        # return avoid_wrapping('لا شيء بعد')
-        return 'لا شيء بعد' 
-    result = []
-    current_depth = 0
-    while i < len(TIMESINCE_CHUNKS) and current_depth < depth:
-        seconds, name = TIMESINCE_CHUNKS[i]
-        count = since // seconds
-        if count == 0:
-            break
-        # result.append( avoid_wrapping(ar_timing(time_strings, name, count)) )
-        result.append(ar_timing(time_strings, name, count)) 
-        since -= seconds * count
-        current_depth += 1
-        i += 1
-    return ' و'.join(result)
+    result = ar_timing(time_strings, name, count)
+    if i + 1 < len(TIMESINCE_CHUNKS):
+        # Now get the second item
+        seconds2, name2 = TIMESINCE_CHUNKS[i + 1]
+        count2 = (since - (seconds * count)) // seconds2
+        if count2 != 0:
+            result += ' و' + ar_timing(time_strings, name2, count2)
+    return result
 
-# function name is changed.
-def ar_timeuntil(d, now=None, time_strings=None):
+
+def ar_timeuntil(d, now=None):
     """
     Like ar_timesince, but return a string measuring the time until the given time.
     """
-    return ar_timesince(d, now, reversed=True, time_strings=time_strings)
+    return ar_timesince(d, now, reversed=True)
